@@ -1,21 +1,60 @@
 version: "3.8"
 services:
-  backend-flask:
+  db:
+    image: postgres:13-alpine
+    restart: always
     environment:
-      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}" # Frontend can be localhost
-      BACKEND_URL: "${BACKEND_URL:-http://backend-flask:4567}" # Internal networking for backend services
-    build: ./backend-flask
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
     ports:
-      - "4567:4567" # Exposing the backend on the host
+      - '5432:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data
+  dynamodb-local:
+    user: root
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data"
+    image: "amazon/dynamodb-local:latest"
+    container_name: dynamodb-local
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+
+  backend-flask:
+    build: ./backend-flask
+    environment:
+      FLASK_ENV: "development"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
+      BACKEND_URL: "${BACKEND_URL:-http://localhost:4567}"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+      POSTGRES_HOST: db
+      DYNAMODB_URL: "http://dynamodb-local:8000"
+      OTEL_SERVICE_NAME: backend-flask
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: "https://api.honeycomb.io"
+      OTEL_EXPORTER_OTLP_HEADERS: "x-honeycomb-team=${HONEYCOMB_API_KEY}"
+    ports:
+      - "4567:4567"
+    depends_on:
+      - db  # Ensure the backend starts after the db is ready
+      - dynamodb-local
     volumes:
       - ./backend-flask:/backend-flask
-
   frontend-react-js:
     environment:
-      REACT_APP_BACKEND_URL: "${REACT_APP_BACKEND_URL:-http://localhost:4567}" # Use localhost for the frontend to reach backend
+      REACT_APP_BACKEND_URL: "${REACT_APP_BACKEND_URL:-http://localhost:4567}"  # Use localhost for the frontend to reach backend
     build: ./frontend-react-js
     ports:
-      - "3000:3000" # Frontend exposed on 3000
+      - "3000:3000"  # Frontend exposed on 3000
     volumes:
       - ./frontend-react-js:/frontend-react-js
       - /frontend-react-js/node_modules
+
+volumes:
+  db:
+    driver: local  # Named volume for Postgres
+  dynamodb_data:
+    driver: local  # Named volume for DynamoDB Local

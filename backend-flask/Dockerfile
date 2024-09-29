@@ -6,9 +6,12 @@ WORKDIR /backend-flask
 
 # Copy requirements file to the container and install dependencies
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt
+# Install OpenTelemetry bootstrap and required packages first
 
-# Copy the rest of the application code to the working directory
+RUN pip install --upgrade pip
+
+# Install all dependencies, including the updated requirements.txt with OpenTelemetry instrumentation libraries
+RUN pip install -r requirements.txt
 COPY . .
 
 # Set environment variables (these can be overridden by Docker Compose or runtime)
