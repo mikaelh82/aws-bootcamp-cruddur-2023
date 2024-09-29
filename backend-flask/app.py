@@ -15,15 +15,18 @@ from services.create_message import *
 from services.show_activity import *
 
 app = Flask(__name__)
-frontend = os.getenv('FRONTEND_URL')
-backend = os.getenv('BACKEND_URL')
+
+frontend = os.getenv('FRONTEND_URL', '*')  # Use '*' as a default if not set
+backend = os.getenv('BACKEND_URL', '*')    # Use '*' as a default if not set
+
 origins = [frontend, backend]
+
 cors = CORS(
-  app, 
-  resources={r"/api/*": {"origins": origins}},
-  expose_headers="location,link",
-  allow_headers="content-type,if-modified-since",
-  methods="OPTIONS,GET,HEAD,POST"
+    app,
+    resources={r"/api/*": {"origins": origins}},
+    expose_headers="location,link",
+    allow_headers="content-type,if-modified-since",
+    methods="OPTIONS,GET,HEAD,POST"
 )
 
 @app.route("/api/message_groups", methods=['GET'])

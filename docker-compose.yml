@@ -2,19 +2,20 @@ version: "3.8"
 services:
   backend-flask:
     environment:
-      FRONTEND_URL: "0.0.0.0"
-      BACKEND_URL: "0.0.0.0"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}" # Frontend can be localhost
+      BACKEND_URL: "${BACKEND_URL:-http://backend-flask:4567}" # Internal networking for backend services
     build: ./backend-flask
     ports:
-      - "4567:4567"
+      - "4567:4567" # Exposing the backend on the host
     volumes:
       - ./backend-flask:/backend-flask
+
   frontend-react-js:
     environment:
-      REACT_APP_BACKEND_URL: "0.0.0.0"
+      REACT_APP_BACKEND_URL: "${REACT_APP_BACKEND_URL:-http://localhost:4567}" # Use localhost for the frontend to reach backend
     build: ./frontend-react-js
     ports:
-      - "3000:3000"
+      - "3000:3000" # Frontend exposed on 3000
     volumes:
       - ./frontend-react-js:/frontend-react-js
       - /frontend-react-js/node_modules

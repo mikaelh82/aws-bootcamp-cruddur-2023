@@ -1,18 +1,25 @@
+# Use a lightweight Python 3.10 image
 FROM python:3.10-slim-buster
 
+# Set the working directory inside the container
 WORKDIR /backend-flask
 
-COPY requirements.txt requirements.txt
+# Copy requirements file to the container and install dependencies
+COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
+# Copy the rest of the application code to the working directory
 COPY . .
 
+# Set environment variables (these can be overridden by Docker Compose or runtime)
 ENV FLASK_ENV=development
 ENV PORT=4567
+# Use * for permissive CORS, but you should override this for specific URLs in production
 ENV BACKEND_URL=*
 ENV FRONTEND_URL=*
 
+# Expose the port to other containers (not the host, that's handled by docker-compose)
 EXPOSE ${PORT}
 
-
+# Command to run the Flask application
 CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=4567"]
