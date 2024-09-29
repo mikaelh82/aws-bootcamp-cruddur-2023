@@ -5,6 +5,7 @@ import os
 
 from services.home_activities import *
 from services.user_activities import *
+from services.notifications_activities import *
 from services.create_activity import *
 from services.create_reply import *
 from services.search_activities import *
@@ -14,15 +15,18 @@ from services.create_message import *
 from services.show_activity import *
 
 app = Flask(__name__)
-frontend = os.getenv('FRONTEND_URL')
-backend = os.getenv('BACKEND_URL')
+
+frontend = os.getenv('FRONTEND_URL', '*')  # Use '*' as a default if not set
+backend = os.getenv('BACKEND_URL', '*')    # Use '*' as a default if not set
+
 origins = [frontend, backend]
+
 cors = CORS(
-  app, 
-  resources={r"/api/*": {"origins": origins}},
-  expose_headers="location,link",
-  allow_headers="content-type,if-modified-since",
-  methods="OPTIONS,GET,HEAD,POST"
+    app,
+    resources={r"/api/*": {"origins": origins}},
+    expose_headers="location,link",
+    allow_headers="content-type,if-modified-since",
+    methods="OPTIONS,GET,HEAD,POST"
 )
 
 @app.route("/api/message_groups", methods=['GET'])
@@ -33,6 +37,12 @@ def data_message_groups():
     return model['errors'], 422
   else:
     return model['data'], 200
+  
+  
+@app.route("/api/activities/notifications", methods=['GET'])
+def data_notification():
+  data = NotificationsActivity.run()
+  return data, 200
 
 @app.route("/api/messages/@<string:handle>", methods=['GET'])
 def data_messages(handle):
