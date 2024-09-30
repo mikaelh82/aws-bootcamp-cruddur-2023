@@ -36,6 +36,8 @@ services:
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_EXPORTER_OTLP_ENDPOINT: "https://api.honeycomb.io"
       OTEL_EXPORTER_OTLP_HEADERS: "x-honeycomb-team=${HONEYCOMB_API_KEY}"
+      AWS_XRAY_URL: "xray-daemon:2000"
+      AWS_XRAY_DAEMON_ADDRESS: "xray-daemon:2000"
     ports:
       - "4567:4567"
     depends_on:
@@ -52,6 +54,16 @@ services:
     volumes:
       - ./frontend-react-js:/frontend-react-js
       - /frontend-react-js/node_modules
+  xray-daemon:
+    image: "amazon/aws-xray-daemon"
+    environment:
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_REGION: "eu-north-1"
+    command:
+      - "xray -o -b xray-daemon:2000"
+    ports:
+      - 2000:2000/udp
 
 volumes:
   db:
