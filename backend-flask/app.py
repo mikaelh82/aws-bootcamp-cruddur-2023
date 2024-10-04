@@ -6,6 +6,7 @@ import os
 from services.home_activities import *
 from services.user_activities import *
 from services.notifications_activities import *
+from services.notifications_activities import *
 from services.create_activity import *
 from services.create_reply import *
 from services.search_activities import *
@@ -33,6 +34,8 @@ from time import strftime
 import rollbar
 import rollbar.contrib.flask
 from flask import got_request_exception
+import sys
+from lib.cognito_jwt_token import CognitoJwtToken, extract_access_token, TokenVerifyError
 
 # HoneyComb ---------
 # Initialize tracing and an exporter that can send data to Honeycomb
@@ -67,6 +70,13 @@ import logging
 # LOGGER.info("test log")
 
 app = Flask(__name__)
+app.logger.setLevel(logging.DEBUG)
+
+cognito_jwt_token = CognitoJwtToken(
+  user_pool_id=os.getenv("AWS_COGNITO_USER_POOL_ID"), 
+  user_pool_client_id=os.getenv("AWS_COGNITO_USER_POOL_CLIENT_ID"),
+  region=os.getenv("AWS_DEFAULT_REGION")
+)
 
 # HoneyComb.io
 # -------------------------------
@@ -82,11 +92,11 @@ backend = os.getenv('BACKEND_URL', '*')    # Use '*' as a default if not set
 origins = [frontend, backend]
 
 cors = CORS(
-    app,
-    resources={r"/api/*": {"origins": origins}},
-    expose_headers="location,link",
-    allow_headers="content-type,if-modified-since",
-    methods="OPTIONS,GET,HEAD,POST"
+  app, 
+  resources={r"/api/*": {"origins": origins}},
+  headers=['Content-Type', 'Authorization'], 
+  expose_headers='Authorization',
+  methods="OPTIONS,GET,HEAD,POST"
 )
 
 # Rollbar ----------
@@ -126,6 +136,11 @@ def data_message_groups():
   else:
     return model['data'], 200
   
+@app.route("/api/activities/notifications", methods=['GET'])
+def data_notifications():
+  data = NotificationsActivities.run()
+  return data, 200
+  
   
 @app.route("/api/activities/notifications", methods=['GET'])
 def data_notification():
@@ -161,7 +176,21 @@ def data_create_message():
 @app.route("/api/activities/home", methods=['GET'])
 #@xray_recorder.capture('activities_home')
 def data_home():
-  data = HomeActivities.run()
+  access_token = extract_access_token(request.headers)
+  try:
+    claims = cognito_jwt_token.verify(access_token)
+    # authenicatied request
+    app.logger.debug("Authenicated")
+    app.logger.debug("This is the claims object:")
+    app.logger.debug(claims)
+    app.logger.debug("This is the claims['username']")
+    app.logger.debug(claims['username'])
+    data = HomeActivities.run(cognito_user_id=claims['username'])
+  except TokenVerifyError as e:
+    # unauthenicatied request
+    app.logger.debug(e)
+    app.logger.debug("unauthenicated")
+    data = HomeActivities.run()
   return data, 200
 
 @app.route("/api/activities/@<string:handle>", methods=['GET'])
