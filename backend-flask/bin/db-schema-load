@@ -1,20 +1,24 @@
 #! /bin/bash
 
-#echo "== db-schema-load"
+# Define colors for output
 CYAN='\033[1;36m'
 NO_COLOR='\033[0m'
 LABEL="db-schema-load"
 printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
 
+# Get the full path of the schema SQL file
 schema_path="$(realpath .)/db/schema.sql"
 
-echo $schema_path
+# Print the schema file path (for debugging purposes)
+echo "Schema file path: $schema_path"
 
+# Determine the URL based on the environment (prod or default)
 if [ "$1" = "prod" ]; then
   echo "Running in production mode"
-  URL=$PROD_CONNECTION_URL
+  URL="$PROD_CONNECTION_URL"
 else
-  URL=$CONNECTION_URL
+  URL="$CONNECTION_URL"
 fi
 
-psql $URL cruddur < $schema_path
+# Execute the schema.sql file with psql using the chosen URL
+psql "$URL" < "$schema_path"
