@@ -1,0 +1,16 @@
+#! /bin/bash
+
+# Define colors for output
+CYAN='\033[1;36m'
+NO_COLOR='\033[0m'
+LABEL="db-drop"
+printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
+
+# Remove "/cruddur" and replace with "/postgres" (or any existing database)
+NO_DB_CONNECTION_URL=$(sed 's/\/cruddur/\/postgres/g' <<<"$CONNECTION_URL")
+
+# Print the modified connection URL to verify correctness
+echo "Connection URL without cruddur (using postgres): $NO_DB_CONNECTION_URL"
+
+# Connect to the database and drop the cruddur database if it exists
+psql "$NO_DB_CONNECTION_URL" -c "DROP DATABASE IF EXISTS cruddur;"
